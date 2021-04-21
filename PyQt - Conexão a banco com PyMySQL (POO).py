@@ -84,9 +84,15 @@ class Janela(QMainWindow):
         self.menuArquivo = self.menu.addMenu('Arquivo')
         self.menuDados = self.menu.addMenu('Dados')
         self.menuAjuda = self.menu.addMenu('Ajuda')
+        # Cadastrar autor
         self.cadastraAutor = QAction('Cadastrar Autor', self)
         self.menuDados.addAction(self.cadastraAutor)
         self.cadastraAutor.triggered.connect(self.abreJanelaAutor)
+        # Cadastrar editora
+        self.cadastraEditora = QAction('Cadastrar Editora', self)
+        self.menuDados.addAction(self.cadastraEditora)
+        self.cadastraEditora.triggered.connect(self.abreJanelaEditora)
+        # Sair
         self.sair = QAction('Sair', self)
         self.menuArquivo.addAction(self.sair)
         self.sair.triggered.connect(self.fechaApp)
@@ -141,6 +147,10 @@ class Janela(QMainWindow):
         self.janelaAutor = JanelaAutor(self)
         self.janelaAutor.show()
 
+    def abreJanelaEditora(self):
+        self.janelaEditora = JanelaEditora(self)
+        self.janelaEditora.show()
+
     def fechaApp(self):
         self.close()
 
@@ -158,7 +168,7 @@ class JanelaAutor(QMainWindow):
 
         self.topo = 300
         self.esq = 300
-        self.alt = 500
+        self.alt = 700
         self.lar = 500
         self.titulo = 'Cadastrar Autores'
 
@@ -198,6 +208,7 @@ class JanelaAutor(QMainWindow):
         self.setGeometry(self.esq, self.topo, self.lar, self.alt)
         self.setWindowTitle(self.titulo)
         self.setStyleSheet('background-color:lightblue')
+        self.carregaAutores()
 
     def cadastraAutor(self):
         try:
@@ -223,10 +234,6 @@ class JanelaAutor(QMainWindow):
                 sql = 'SELECT * FROM tbl_autores;'
                 c.execute(sql)
                 self.resAutores = c.fetchall()
-                '''# Criar lista com os dados retornados
-                self.listaAutores = []
-                for linha in self.resAutores:
-                    self.listaEditoras.append(linha['NomeAutor'])'''
         except Exception:
             msgProblemaBD()
         else:
@@ -247,7 +254,93 @@ class JanelaAutor(QMainWindow):
             # Desconectar do servidor
             con.close()
 	
-#------------ Rotina Principal ------------#
+#------------ Janela de Editoras ------------#
+
+class JanelaEditora(QMainWindow):
+    def __init__(self, parent=None):
+        super(JanelaEditora, self).__init__(parent)
+
+        self.topo = 100
+        self.esq = 300
+        self.alt = 550
+        self.lar = 500
+        self.titulo = 'Cadastrar Editoras'       
+
+        # Caixa de texto para cadastro de editora:
+        self.lblNomeEditora = QLabel(self)
+        self.lblNomeEditora.move(100,80)
+        self.lblNomeEditora.resize(250,30)
+        self.lblNomeEditora.setText('Nome da editora:')
+        self.txtNomeEditora = QLineEdit(self)   
+        self.txtNomeEditora.move(100,110)
+        self.txtNomeEditora.resize(200,30)
+
+        # Criar botão para cadastro de editoras
+        self.btnCadastraEditora = QPushButton('Cadastrar Editora', self)
+        self.btnCadastraEditora.move(100, 150)
+        self.btnCadastraEditora.setStyleSheet('background-color:#0000CC;color:yellow;font:bold')
+        self.btnCadastraEditora.setToolTip('Clique aqui para cadastrar uma nova editora')
+        self.btnCadastraEditora.clicked.connect(self.cadastraEditora)
+        self.btnCadastraEditora.clicked.connect(self.carregaEditoras)
+
+        # Tabela de Editoras
+        self.tabelaEditoras = QTableWidget(self)
+        self.tabelaEditoras.move(100,200)
+        self.tabelaEditoras.resize(250,300)
+        
+        # Configurar janela
+        self.configuraJanela()
+
+    def configuraJanela(self):
+        self.setGeometry(self.esq, self.topo, self.lar, self.alt)
+        self.setWindowTitle(self.titulo)
+        self.setStyleSheet('background-color:lightblue')
+        self.carregaEditoras()
+
+    def cadastraEditora(self):
+        try:
+            conectaBanco()
+            self.nomeEditora = self.txtNomeEditora.text()
+            with con.cursor() as cur:           
+                sql = "INSERT INTO tbl_editoras (NomeEditora) VALUES " + "('" + self.nomeEditora + "');"
+                cur.execute(sql)
+                con.commit()
+                cur.close()
+        except Exception:
+            msgProblemaBD()
+        else:
+            msgSucesso()
+        finally:
+            con.close()
+
+    def carregaEditoras(self):
+        try:
+            conectaBanco()
+            with con.cursor() as c:
+                sql = 'SELECT * FROM tbl_editoras;'
+                c.execute(sql)
+                self.resEditoras = c.fetchall()
+        except Exception:
+            msgProblemaBD()
+        else:
+            self.linhas = len(self.resEditoras)
+            self.colunas = len(self.resEditoras[0])
+            self.tabelaEditoras.setRowCount(self.linhas)
+            self.tabelaEditoras.setColumnCount(self.colunas)
+            
+            # Ajustar cabeçalho e dimensões da tabela
+            self.tabelaEditoras.setHorizontalHeaderLabels((list(self.resEditoras[0].keys())))
+            self.tabelaEditoras.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            
+            for l in range(self.linhas):
+              for c in range(self.colunas):
+                item = (list(self.resEditoras[l].values())[c])
+                self.tabelaEditoras.setItem(l, c, QTableWidgetItem(str(item)))
+        finally:           
+            # Desconectar do servidor
+            con.close()
+
+#-------------- Rotina Principal --------------#
         
 if __name__ == '__main__':
     app = QApplication(sys.argv)
